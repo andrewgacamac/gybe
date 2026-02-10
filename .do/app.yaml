@@ -1,14 +1,17 @@
 
 name: yardguard-backend
-static_sites: # Use 'static_sites' for static content
+static_sites: 
 - name: web
   github:
     branch: main
     repo: andrewgacamac/gybe
   source_dir: /
-  output_dir: . # Serve from the root directory
+  # DO requires an output dir, so we create a 'public' folder and move files into it during build
+  output_dir: public 
   build_command: |
-    echo "window.YardGuardConfig = { SUPABASE_URL: '$SUPABASE_URL', SUPABASE_ANON_KEY: '$SUPABASE_ANON_KEY', SUPABASE_SERVICE_ROLE_KEY: '$SUPABASE_SERVICE_ROLE_KEY' };" > admin-portal/js/config.js && echo "Config generated!"
+    mkdir -p public
+    cp -r admin-portal/* public/
+    echo "window.YardGuardConfig = { SUPABASE_URL: '$SUPABASE_URL', SUPABASE_ANON_KEY: '$SUPABASE_ANON_KEY', SUPABASE_SERVICE_ROLE_KEY: '$SUPABASE_SERVICE_ROLE_KEY' };" > public/js/config.js 
   envs:
   - key: SUPABASE_URL
     scope: RUN_AND_BUILD_TIME
