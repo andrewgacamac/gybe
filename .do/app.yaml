@@ -1,12 +1,20 @@
 
 name: yardguard-backend
-services:
+static_sites: # Use 'static_sites' for static content
 - name: web
   github:
     branch: main
     repo: andrewgacamac/gybe
   source_dir: /
-  type: static
-  http_port: 8080
+  output_dir: . # Serve from the root directory
+  build_command: |
+    echo "window.YardGuardConfig = { SUPABASE_URL: '$SUPABASE_URL', SUPABASE_ANON_KEY: '$SUPABASE_ANON_KEY', SUPABASE_SERVICE_ROLE_KEY: '$SUPABASE_SERVICE_ROLE_KEY' };" > admin-portal/js/config.js && echo "Config generated!"
+  envs:
+  - key: SUPABASE_URL
+    scope: RUN_AND_BUILD_TIME
+  - key: SUPABASE_ANON_KEY
+    scope: RUN_AND_BUILD_TIME
+  - key: SUPABASE_SERVICE_ROLE_KEY
+    scope: RUN_AND_BUILD_TIME
   routes:
   - path: /
