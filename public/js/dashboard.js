@@ -143,7 +143,7 @@ async function loadLeads() {
                         <td>${updatedDate}</td>
                         <td>
                             <!-- DEBUG: Showing ID in button -->
-                            <a href="/admin-portal/lead?id=${lead.id}" class="btn btn-primary">View</a>
+                            <a href="lead.html?id=${lead.id}" class="btn btn-primary">View</a>
                         </td>
                     `;
                     tbody.appendChild(tr);
