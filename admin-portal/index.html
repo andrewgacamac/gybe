@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/admin-portal/">
+    <title>YardGuard Admin Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase.umd.js"></script>
+    <script src="js/config.js"></script>
+    <!-- ES Module approach eliminates need for separate script tags here -->
+</head>
+
+<body>
+    <div id="debug-console"
+        style="background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; max-height: 200px; overflow: auto; border-bottom: 2px solid #333; display: none;">
+        <strong>Debug Console:</strong><br>
+    </div>
+    <script>
+        const debugConsole = document.getElementById('debug-console');
+        function log(msg, isError = false) {
+            debugConsole.style.display = 'block'; // Show on first log
+            const line = document.createElement('div');
+            line.style.color = isError ? '#ff5555' : '#0f0';
+            line.textContent = `[${new Date().toISOString().split('T')[1].slice(0, -1)}] ${msg}`;
+            debugConsole.appendChild(line);
+            console[isError ? 'error' : 'log'](msg);
+        }
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            log(`Global Error: ${msg} (${url}:${lineNo})`, true);
+            return false;
+        };
+        window.onunhandledrejection = function (event) {
+            log(`Unhandled Rejection: ${event.reason}`, true);
+        };
+        log('Page loaded. Waiting for modules...');
+    </script>
+    <script src="js/sanity_check.js"></script>
+    <header>
+        <div class="brand">YardGuard Admin</div>
+        <nav>
+            <a href="index.html" class="active">Queue</a>
+            <a href="audit.html" class="admin-only hidden">Audit Log</a>
+            <a href="users.html" class="admin-only hidden">Users</a>
+            <a href="#" id="logout-btn">Logout</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="card">
+            <div class="flex-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="margin: 0;">Lead Queue</h2>
+                <div class="filters" style="display: flex; align-items: center;">
+                    <select id="status-filter" style="width: 200px;">
+                        <option value="ALL">All Statuses</option>
+                        <option value="NEW">New</option>
+                        <option value="PROCESSING">Processing</option>
+                        <option value="NEEDS_REVIEW" selected>Needs Review</option>
+                        <option value="APPROVED">Approved</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="FAILED">Failed</option>
+                    </select>
+                    <button id="refresh-btn" class="btn btn-primary" style="margin-left: 12px;">Refresh</button>
+                    <button id="reset-db-btn" class="btn" onclick="window.adminResetDatabase()"
+                        style="margin-left: 12px; background-color: #ef4444; color: white; border: none; cursor: pointer;">Reset
+                        DB</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="leads-table">
+                    <thead>
+                        <tr>
+                            <th>Created</th>
+                            <th>Lead</th>
+                            <th>Photos</th>
+                            <th>Status (Click for Filter)</th>
+                            <th>Last Update</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leads-body">
+                        <tr>
+                            <td colspan="6" style="text-align: center;">Waiting for JavaScript... (Check Debug Console
+                                above)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" style="display: flex; justify-content: center; margin-top: 24px;">
+                <button id="prev-page" class="btn" disabled>Previous</button>
+                <span id="page-info" style="margin: 0 16px; line-height: 32px;">Page 1</span>
+                <button id="next-page" class="btn">Next</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Load Dashboard Logic as Module -->
+    <script type="module" src="js/dashboard.js?v=108"></script>
+
+    <!-- INLINE RESET LOGIC TO FORCE EXECUTION -->
+    <script type="module">
+        // Import Config for Keys (or hardcode for now to prove it works)
+        const SUPABASE_URL = window.YardGuardConfig ? window.YardGuardConfig.SUPABASE_URL : null;
+        const SUPABASE_ANON_KEY = window.YardGuardConfig ? window.YardGuardConfig.SUPABASE_ANON_KEY : null;
+        const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/admin-reset`;
+
+        window.adminResetDatabase = async function () {
+            console.log('Reset button clicked (Inline Script via Fetch)');
+            const resetBtn = document.getElementById('reset-db-btn');
+
+            if (resetBtn) {
+                resetBtn.textContent = 'Wait...';
+                resetBtn.style.opacity = '0.5';
+            }
+
+            setTimeout(async () => {
+                if (confirm('WARNING: DELETE ALL LEADS? This cannot be undone.')) {
+                    try {
+                        if (resetBtn) resetBtn.textContent = 'Resetting...';
+
+                        console.log(`Fetching: ${FUNCTION_URL}`);
+                        const response = await fetch(FUNCTION_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                            }
+                        });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`Function Error: ${response.status} ${errorText}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (!data.success) {
+                            throw new Error(data.error || 'Unknown error');
+                        }
+
+                        // alert('Database reset successful: ' + data.message);
+                        alert('SUCCESS: Database Reset Complete!');
+                        window.location.reload();
+
+                    } catch (err) {
+                        console.error(err);
+                        alert('Reset Failed: ' + err.message);
+                        if (resetBtn) {
+                            resetBtn.textContent = 'Reset DB';
+                            resetBtn.style.opacity = '1';
+                        }
+                    }
+                } else {
+                    if (resetBtn) {
+                        resetBtn.textContent = 'Reset DB';
+                        resetBtn.style.opacity = '1';
+                    }
+                }
+            }, 50);
+        }
+        console.log('Inline Reset Logic (Direct Fetch) Loaded');
+    </script>
+</body>
+
+</html>

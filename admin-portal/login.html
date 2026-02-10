@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YardGuard Admin Login</title>
+    <link rel="stylesheet" href="/admin-portal/css/style.css">
+    <!-- Removed manual supabase-js script as we use ES Modules now -->
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="card">
+            <h2 style="text-align: center; color: var(--primary);">YardGuard Admin</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="admin@yardguard.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+            </form>
+            <div id="error-msg" style="color: var(--danger); margin-top: 12px; text-align: center; display: none;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Use Type="module" to import from auth.js -->
+    <script type="module">
+        import { supabase, checkAuth } from './js/auth.js?v=6';
+
+        const loginForm = document.getElementById('login-form');
+        const errorMsg = document.getElementById('error-msg');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.style.display = 'none';
+            errorMsg.textContent = '';
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            console.log('Attempting login explicitly for:', email);
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) {
+                    console.error('Login Error Object:', error);
+                    throw error;
+                }
+
+                // Check if user has admin/reviewer role
+                const { data: profile, error: profileError } = await supabase
+                    .from('admin_users')
+                    .select('role, is_active')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (profileError || !profile) {
+                    throw new Error('Access denied. Not an admin user.');
+                }
+
+                if (!profile.is_active) {
+                    throw new Error('Account is inactive.');
+                }
+
+                if (data?.session) {
+                    console.log('Login successful, redirecting...');
+                    window.location.href = 'index.html';
+                } else {
+                    throw new Error('No session returned');
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>

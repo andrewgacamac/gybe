@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YardGuard - Lead Detail</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/admin-portal/js/config.js"></script>
+    <link rel="stylesheet" href="/admin-portal/css/style.css">
+    <style>
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .photo-card {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--surface);
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .photo-meta {
+            padding: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .estimate-editor {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            font-family: monospace;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            resize: vertical;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+        }
+
+        /* Modal for images */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            margin: auto;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <a href="index.html" class="brand">← Back to Queue</a>
+        <div id="lead-status-badge"></div>
+    </header>
+
+    <main>
+        <div class="card">
+            <h2 id="lead-name">Loading...</h2>
+            <div class="details-grid">
+                <div>
+                    <h3>Contact Info</h3>
+                    <p><strong>Email:</strong> <span id="lead-email"></span></p>
+                    <p><strong>Phone:</strong> <span id="lead-phone"></span></p>
+                    <p><strong>Address:</strong> <span id="lead-address"></span></p>
+                    <p><strong>City/Postal:</strong> <span id="lead-city-postal"></span></p>
+                    <p><strong>Created:</strong> <span id="lead-created"></span></p>
+                </div>
+                <div>
+                    <h3>Project Specs</h3>
+                    <div
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; margin-bottom: 16px;">
+                        <div><strong>Package:</strong> <span id="lead-package"></span></div>
+                        <div><strong>Size:</strong> <span id="lead-size"></span></div>
+                        <div><strong>Timeline:</strong> <span id="lead-timeline"></span></div>
+                        <div><strong>Source:</strong> <span id="lead-source"></span></div>
+                        <div style="grid-column: span 2;"><strong>Type:</strong> <span id="lead-type"></span></div>
+                    </div>
+
+                    <h3>Customer Message</h3>
+                    <p id="lead-message"
+                        style="background: var(--background); padding: 8px; border-radius: 4px; font-style: italic; min-height: 40px; margin-bottom: 16px;">
+                    </p>
+
+                    <h3>Internal Notes</h3>
+                    <textarea id="internal-notes" placeholder="Reviewer notes..."
+                        style="width: 100%; height: 80px;"></textarea>
+                    <button id="save-notes-btn" class="btn btn-sm" style="margin-top: 8px;">Save Notes</button>
+
+                    <div id="rejection-box" style="display: none; color: var(--danger); margin-top: 12px;">
+                        <strong>Rejection Reason:</strong> <span id="rejection-reason"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Photos</h3>
+            <div class="photo-grid" id="photos-container">
+                <!-- Photos injected here -->
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>AI Estimate</h3>
+            <textarea id="estimate-text" class="estimate-editor"></textarea>
+            <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+                <button id="save-estimate-btn" class="btn btn-primary">Save Estimate</button>
+            </div>
+        </div>
+
+        <div class="card action-bar" id="actions-container">
+            <button id="approve-btn" class="btn btn-success">Approve & Send Email</button>
+            <button id="resend-btn" class="btn btn-warning" style="display: none;">Resend Email</button>
+            <button id="reject-btn" class="btn btn-danger">Reject</button>
+        </div>
+    </main>
+
+    <!-- Image Modal -->
+    <div id="img-modal" class="modal">
+        <span class="modal-close">&times;</span>
+        <img id="modal-img-content">
+    </div>
+
+    <!-- Reject Reason Modal -->
+    <div id="reject-modal" class="modal" style="background-color: rgba(0,0,0,0.5);">
+        <div class="card" style="width: 400px; margin: auto;">
+            <h3>Reject Lead</h3>
+            <textarea id="reject-reason-input" placeholder="Enter reason for rejection..."
+                style="width: 100%; height: 100px; margin-bottom: 16px;"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button id="cancel-reject" class="btn">Cancel</button>
+                <button id="confirm-reject" class="btn btn-danger">Confirm Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/lead-detail.js?v=202"></script>
+</body>
+
+</html>

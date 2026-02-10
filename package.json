@@ -1,0 +1,22 @@
+{
+  "name": "yardguard-backend",
+  "version": "1.0.0",
+  "description": "Automated lead processing system for artificial turf installation.",
+  "main": "create_admin.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
+    "dotenv": "^17.2.4"
+  }
+}
