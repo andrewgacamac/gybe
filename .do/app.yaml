@@ -6,11 +6,10 @@ static_sites:
     branch: main
     repo: andrewgacamac/gybe
   source_dir: /
-  # DO requires an output dir, so we create a 'public' folder and move files into it during build
+  # We renamed admin-portal to public, so it exists in the source.
   output_dir: public 
+  # Simply generate the config file in the existing directory
   build_command: |
-    mkdir -p public
-    cp -r admin-portal/* public/
     echo "window.YardGuardConfig = { SUPABASE_URL: '$SUPABASE_URL', SUPABASE_ANON_KEY: '$SUPABASE_ANON_KEY', SUPABASE_SERVICE_ROLE_KEY: '$SUPABASE_SERVICE_ROLE_KEY' };" > public/js/config.js 
   envs:
   - key: SUPABASE_URL
