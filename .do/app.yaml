@@ -1,0 +1,12 @@
+
+name: yardguard-backend
+services:
+- name: web
+  github:
+    branch: main
+    repo: andrewgacamac/gybe
+  source_dir: /
+  type: static
+  http_port: 8080
+  routes:
+  - path: /
